@@ -46,6 +46,10 @@ pastabin 0.0.1 - Minimal pastebin clone in Rust. Manual post required. CLI recom
     SOURCE CODE
 
         https://github.com/nopjmp/pastabin
+
+    LICENSE
+
+        MIT License. https://github.com/nopjmp/pastabin/blob/master/LICENSE.md
     ";
 
 fn retrieve_paste(id: PasteID) -> Option<File> {
