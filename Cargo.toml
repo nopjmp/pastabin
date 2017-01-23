@@ -1,0 +1,8 @@
+[package]
+name = "pastabin"
+version = "0.0.1"
+authors = ["nopjmp <jmp@const.ninja>"]
+
+[dependencies]
+hyper = "0.10"
+rand = "0.3"
