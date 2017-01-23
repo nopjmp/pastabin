@@ -60,11 +60,11 @@ fn create_paste(id: &PasteID) -> io::Result<File> {
 }
 
 macro_rules! try_handle {
-    ($res:ident, $e:expr) => {{
+    ($res:ident, $e:expr, $statuscode:expr) => {{
         match $e.ok() {
             Some(v) => v,
             None => {
-                *$res.status_mut() = StatusCode::InternalServerError;
+                *$res.status_mut() = $statuscode;
                 return;
             },
         }
@@ -85,7 +85,9 @@ fn handle(mut req: Request, mut res: Response) {
                     } else if let Ok(id) = PasteID::from_str(path.trim_left_matches("/")) {
                         match retrieve_paste(id) {
                             Some(mut file) => {
-                                let metadata = try_handle!(res, file.metadata());
+                                let metadata = try_handle!(res,
+                                                           file.metadata(),
+                                                           StatusCode::InternalServerError);
                                 res.headers_mut().set(ContentLength(metadata.len()));
                                 res.headers_mut().set(ContentType::plaintext());
                                 io::copy(&mut file, &mut res.start().unwrap()).unwrap();
@@ -116,8 +118,12 @@ fn handle(mut req: Request, mut res: Response) {
                         if file.is_err() {
                             *res.status_mut() = StatusCode::InternalServerError;
                         } else {
-                            // TODO: handle errors
-                            try_handle!(res, io::copy(&mut req, &mut try_handle!(res, file)));
+                            try_handle!(res,
+                                        io::copy(&mut req,
+                                                 &mut try_handle!(res, 
+                                                                  file,
+                                                                  StatusCode::InternalServerError)),
+                                        StatusCode::InternalServerError);
                             *res.status_mut() = StatusCode::Created;
                             res.send(format!("https://pasta.lol/{}\n", id).as_bytes())
                                 .unwrap();
@@ -130,16 +136,15 @@ fn handle(mut req: Request, mut res: Response) {
         hyper::Delete => {
             match req.uri.clone() {
                 AbsolutePath(path) => {
-                    if let Ok(id) = PasteID::from_str(path.trim_left_matches("/")) {
-                        let filename = id.filename();
-                        let path = Path::new(&filename);
-                        if path.exists() {
-                            try_handle!(res, remove_file(path));
-                        } else {
-                            *res.status_mut() = StatusCode::NotFound;
-                        }
+                    let id = try_handle!(res,
+                                         PasteID::from_str(path.trim_left_matches("/")),
+                                         StatusCode::BadRequest);
+                    let filename = id.filename();
+                    let path = Path::new(&filename);
+                    if path.exists() {
+                        try_handle!(res, remove_file(path), StatusCode::InternalServerError);
                     } else {
-                        *res.status_mut() = StatusCode::BadRequest;
+                        *res.status_mut() = StatusCode::NotFound;
                     }
                 }
                 _ => *res.status_mut() = StatusCode::BadRequest,
