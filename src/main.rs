@@ -42,6 +42,10 @@ pastabin 0.0.1 - Minimal pastebin clone in Rust. Manual post required. CLI recom
         Delete an existing paste:
 
             curl -X DELETE https://pasta.lol/<id>
+
+    SOURCE CODE
+
+        https://github.com/nopjmp/pastabin
     ";
 
 fn retrieve_paste(id: PasteID) -> Option<File> {
