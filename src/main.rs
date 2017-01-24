@@ -181,7 +181,7 @@ fn handle(mut req: Request, mut res: Response) {
                     let url = try_handle!(res, Url::parse(&*full), StatusCode::BadRequest);
                     let password = try_handle_raw!(res,
                                                    url.query_pairs().find(|t| t.0 == "password"),
-                                                   StatusCode::BadRequest)
+                                                   StatusCode::Unauthorized)
                         .1;
                     let id = try_handle!(res,
                                          PasteID::from_str(url.path().trim_left_matches("/")),
