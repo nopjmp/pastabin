@@ -5,7 +5,6 @@ use rand::{self, Rng};
 
 use self::ParseError::*;
 
-const BASE62: &'static [u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const MAX_SIZE: usize = 64;
 
 pub struct PasteID(String);
@@ -28,12 +27,7 @@ impl fmt::Display for ParseError {
 impl PasteID {
     // Returns a new randomly generated id.
     pub fn new(size: usize) -> PasteID {
-        let mut rng = rand::thread_rng();
-        let mut id = String::with_capacity(size);
-        for _ in 0..size {
-            id.push(BASE62[rng.gen::<usize>() % 62] as char);
-        }
-        PasteID(id)
+        PasteID(strgen::generate(size))
     }
 
     // returns the filename associated with the id

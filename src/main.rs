@@ -9,7 +9,7 @@ use std::path::Path;
 mod pasteid;
 use pasteid::PasteID;
 
-mod passgen;
+mod strgen;
 
 use std::io;
 use hyper::header::{ContentLength, ContentType};
@@ -152,13 +152,13 @@ fn handle(mut req: Request, mut res: Response) {
                                 try_handle!(res,
                                             io::copy(&mut req, &mut fd),
                                             StatusCode::InternalServerError);
-                                let password = passgen::generate(PASS_SIZE);
+                                let password = strgen::generate(PASS_SIZE);
                                 try_handle!(res,
                                             fd.set_xattr(XATTR_PASSWORD, password.as_slice()),
                                             StatusCode::InternalServerError);
                                 *res.status_mut() = StatusCode::Created;
                                 res.send(format!("{{ url: \"https://pasta.lol/{}\", pass: \
-                                                   {}}}\n",
+                                                   \"{}\"}}\n",
                                                   id,
                                                   std::str::from_utf8(password.as_slice())
                                                       .unwrap())
