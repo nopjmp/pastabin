@@ -1,6 +1,7 @@
 use rand::{self, Rng};
 
-const CHARACTERS: &'static [u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+pub const CHARACTERS: &'static [u8] =
+    b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 const CHARACTERS_SIZE: usize = 62;
 

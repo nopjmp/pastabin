@@ -49,7 +49,7 @@ impl FromStr for PasteID {
             return Err(LengthTooLong);
         }
 
-        if !s.as_bytes().iter().all(|&x| BASE62.contains(&x)) {
+        if !s.as_bytes().iter().all(|&x| strgen::CHARACTERS.contains(&x)) {
             return Err(InvalidCharacters);
         }
 
