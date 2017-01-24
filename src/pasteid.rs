@@ -29,10 +29,10 @@ impl PasteID {
     // Returns a new randomly generated id.
     pub fn new(size: usize) -> PasteID {
         let mut rng = rand::thread_rng();
-        let id = (0..size).fold(String::with_capacity(size), |mut acc, _| {
-            acc.push(BASE62[rng.gen::<usize>() % 62] as char);
-            acc
-        });
+        let mut id = String::with_capacity(size);
+        for _ in 0..size {
+            id.push(BASE62[rng.gen::<usize>() % 62] as char);
+        }
         PasteID(id)
     }
 

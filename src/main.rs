@@ -1,5 +1,6 @@
 extern crate rand;
 extern crate hyper;
+extern crate xattr;
 
 use std::fs::{File, OpenOptions, remove_file};
 use std::str::FromStr;
@@ -8,13 +9,17 @@ use std::path::Path;
 mod pasteid;
 use pasteid::PasteID;
 
+mod passgen;
+
 use std::io;
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Server, Request, Response};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri::*;
+use hyper::Url;
 
 const ID_SIZE: usize = 8;
+const PASS_SIZE: usize = 12;
 const USAGE: &'static [u8] = b"
 pastabin 0.0.1 - Minimal pastebin clone in Rust. Manual post required. CLI recommended.
 
@@ -75,12 +80,25 @@ macro_rules! try_handle {
     }}
 }
 
+macro_rules! try_handle_raw {
+    ($res:ident, $e:expr, $statuscode:expr) => {{
+        match $e {
+            Some(v) => v,
+            None => {
+                *$res.status_mut() = $statuscode;
+                return;
+            },
+        }
+    }}
+}
+
 fn handle(mut req: Request, mut res: Response) {
     match req.method {
         hyper::Get => {
             match req.uri.clone() {
                 AbsolutePath(path) => {
-                    match &*path {
+                    let url = try_handle!(res, Url::parse(&*path), StatusCode::BadRequest);
+                    match url.path() {
                         "/" => {
                             res.headers_mut().set(ContentType::plaintext());
                             res.send(USAGE).unwrap();
@@ -90,7 +108,7 @@ fn handle(mut req: Request, mut res: Response) {
                             *res.status_mut() = StatusCode::NotFound;
                         }
                         _ => {
-                            if let Ok(id) = PasteID::from_str(path.trim_left_matches("/")) {
+                            if let Ok(id) = PasteID::from_str(url.path().trim_left_matches("/")) {
                                 match retrieve_paste(id) {
                                     Some(mut file) => {
                                         let metadata = try_handle!(res,
@@ -133,8 +151,19 @@ fn handle(mut req: Request, mut res: Response) {
                                                                   file,
                                                                   StatusCode::InternalServerError)),
                                         StatusCode::InternalServerError);
+                                let password = passgen::generate(PASS_SIZE);
+                                try_handle!(res,
+                                            xattr::set(&id.filename(),
+                                                       "password",
+                                                       password.as_slice()),
+                                            StatusCode::InternalServerError);
                                 *res.status_mut() = StatusCode::Created;
-                                res.send(format!("https://pasta.lol/{}\n", id).as_bytes())
+                                res.send(format!("{{ url: \"https://pasta.lol/{}\", pass: \
+                                                   {}}}\n",
+                                                  id,
+                                                  std::str::from_utf8(password.as_slice())
+                                                      .unwrap())
+                                        .as_bytes())
                                     .unwrap();
                             }
                         }
@@ -149,13 +178,26 @@ fn handle(mut req: Request, mut res: Response) {
         hyper::Delete => {
             match req.uri.clone() {
                 AbsolutePath(path) => {
-                    // TODO: authentication
+                    let url = try_handle!(res, Url::parse(&*path), StatusCode::BadRequest);
+                    let password = try_handle_raw!(res,
+                                                   url.query_pairs().find(|t| t.0 == "password"),
+                                                   StatusCode::BadRequest)
+                        .1;
                     let id = try_handle!(res,
-                                         PasteID::from_str(path.trim_left_matches("/")),
+                                         PasteID::from_str(url.path().trim_left_matches("/")),
                                          StatusCode::BadRequest);
                     let filename = id.filename();
                     let path = Path::new(&filename);
                     if path.exists() {
+                        if let Some(data) = xattr::get(path, "password").ok() {
+                            if password !=
+                               try_handle!(res,
+                                           std::str::from_utf8(data.as_slice()),
+                                           StatusCode::BadRequest) {
+                                *res.status_mut() = StatusCode::Unauthorized;
+                                return;
+                            }
+                        }
                         try_handle!(res, remove_file(path), StatusCode::InternalServerError);
                     } else {
                         *res.status_mut() = StatusCode::NotFound;

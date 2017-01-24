@@ -6,3 +6,4 @@ authors = ["nopjmp <jmp@const.ninja>"]
 [dependencies]
 hyper = "0.10"
 rand = "0.3"
+xattr = "^0.1"
