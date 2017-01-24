@@ -97,8 +97,7 @@ fn handle(mut req: Request, mut res: Response) {
         hyper::Get => {
             match req.uri.clone() {
                 AbsolutePath(path) => {
-                    let url = try_handle!(res, Url::parse(&*path), StatusCode::BadRequest);
-                    match url.path() {
+                    match &*path {
                         "/" => {
                             res.headers_mut().set(ContentType::plaintext());
                             res.send(USAGE).unwrap();
@@ -108,7 +107,7 @@ fn handle(mut req: Request, mut res: Response) {
                             *res.status_mut() = StatusCode::NotFound;
                         }
                         _ => {
-                            if let Ok(id) = PasteID::from_str(url.path().trim_left_matches("/")) {
+                            if let Ok(id) = PasteID::from_str(path.trim_left_matches("/")) {
                                 match retrieve_paste(id) {
                                     Some(mut file) => {
                                         let metadata = try_handle!(res,
