@@ -1,9 +1,9 @@
 use std::fmt;
-use std::str::FromStr;
-
-use rand::{self, Rng};
+use std::str::{FromStr, from_utf8};
 
 use self::ParseError::*;
+
+use strgen;
 
 const MAX_SIZE: usize = 64;
 
@@ -27,7 +27,7 @@ impl fmt::Display for ParseError {
 impl PasteID {
     // Returns a new randomly generated id.
     pub fn new(size: usize) -> PasteID {
-        PasteID(strgen::generate(size))
+        PasteID(String::from(from_utf8(strgen::generate(size).as_slice()).unwrap()))
     }
 
     // returns the filename associated with the id
