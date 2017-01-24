@@ -177,7 +177,8 @@ fn handle(mut req: Request, mut res: Response) {
         hyper::Delete => {
             match req.uri.clone() {
                 AbsolutePath(path) => {
-                    let url = try_handle!(res, Url::parse(&*path), StatusCode::BadRequest);
+                    let full = format!("https://pasta.lol{}", path);
+                    let url = try_handle!(res, Url::parse(&*full), StatusCode::BadRequest);
                     let password = try_handle_raw!(res,
                                                    url.query_pairs().find(|t| t.0 == "password"),
                                                    StatusCode::BadRequest)
