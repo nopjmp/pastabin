@@ -24,14 +24,16 @@ const ID_SIZE: usize = 8;
 const PASS_SIZE: usize = 12;
 const XATTR_PASSWORD: &'static str = "system.password";
 const USAGE: &'static [u8] = b"
-pastabin 0.0.1 - Minimal pastebin clone in Rust. Manual post required. CLI recommended.
+pastabin 0.0.2 - Minimal pastebin clone in Rust. Manual post required. CLI recommended.
+
+    Now with password support!
 
     USAGE
 
       POST /
 
-        accepts raw data in the body of the request and responds with a URL of
-        a page containing the body's content
+        accepts raw data in the body of the request and responds with a JSON docment with URL of
+        a page containing the body's content and a password
 
       GET /<id>
 
@@ -49,7 +51,7 @@ pastabin 0.0.1 - Minimal pastebin clone in Rust. Manual post required. CLI recom
 
         Delete an existing paste:
 
-            curl -X DELETE https://pasta.lol/<id>
+            curl -X DELETE https://pasta.lol/<id>?password=<password>
 
     SOURCE CODE
 
