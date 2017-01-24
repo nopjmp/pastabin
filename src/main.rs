@@ -157,8 +157,8 @@ fn handle(mut req: Request, mut res: Response) {
                                             fd.set_xattr(XATTR_PASSWORD, password.as_slice()),
                                             StatusCode::InternalServerError);
                                 *res.status_mut() = StatusCode::Created;
-                                res.send(format!("{{ url: \"https://pasta.lol/{}\", pass: \
-                                                   \"{}\"}}\n",
+                                res.send(format!("{{ \"url\": \"https://pasta.lol/{}\", \
+                                                   \"pass\": \"{}\"}}\n",
                                                   id,
                                                   std::str::from_utf8(password.as_slice())
                                                       .unwrap())
