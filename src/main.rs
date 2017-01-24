@@ -80,26 +80,32 @@ fn handle(mut req: Request, mut res: Response) {
         hyper::Get => {
             match req.uri.clone() {
                 AbsolutePath(path) => {
-                    if path == "/" {
-                        res.headers_mut().set(ContentType::plaintext());
-                        res.send(USAGE).unwrap();
-                    } else if path == "/favicon.ico" {
-                        // todo favicon
-                        *res.status_mut() = StatusCode::NotFound;
-                    } else if let Ok(id) = PasteID::from_str(path.trim_left_matches("/")) {
-                        match retrieve_paste(id) {
-                            Some(mut file) => {
-                                let metadata = try_handle!(res,
-                                                           file.metadata(),
-                                                           StatusCode::InternalServerError);
-                                res.headers_mut().set(ContentLength(metadata.len()));
-                                res.headers_mut().set(ContentType::plaintext());
-                                io::copy(&mut file, &mut res.start().unwrap()).unwrap();
-                            }
-                            None => *res.status_mut() = StatusCode::NotFound,
+                    match &*path {
+                        "/" => {
+                            res.headers_mut().set(ContentType::plaintext());
+                            res.send(USAGE).unwrap();
                         }
-                    } else {
-                        *res.status_mut() = StatusCode::BadRequest;
+                        "/favicon.ico" => {
+                            // todo favicon
+                            *res.status_mut() = StatusCode::NotFound;
+                        }
+                        _ => {
+                            if let Ok(id) = PasteID::from_str(path.trim_left_matches("/")) {
+                                match retrieve_paste(id) {
+                                    Some(mut file) => {
+                                        let metadata = try_handle!(res,
+                                                                   file.metadata(),
+                                                                   StatusCode::InternalServerError);
+                                        res.headers_mut().set(ContentLength(metadata.len()));
+                                        res.headers_mut().set(ContentType::plaintext());
+                                        io::copy(&mut file, &mut res.start().unwrap()).unwrap();
+                                    }
+                                    None => *res.status_mut() = StatusCode::NotFound,
+                                }
+                            } else {
+                                *res.status_mut() = StatusCode::BadRequest;
+                            }
+                        }
                     }
                 }
                 _ => *res.status_mut() = StatusCode::BadRequest,
@@ -108,29 +114,32 @@ fn handle(mut req: Request, mut res: Response) {
         hyper::Post => {
             match req.uri.clone() {
                 AbsolutePath(path) => {
-                    if path != "/" {
-                        *res.status_mut() = StatusCode::BadRequest;
-                    } else {
-                        let mut tries = 0;
-                        let mut id = PasteID::new(ID_SIZE);
-                        let mut file = create_paste(&id);
-                        while file.is_err() && tries < 3 {
-                            id = PasteID::new(ID_SIZE);
-                            file = create_paste(&id);
-                            tries += 1;
-                        }
-                        if file.is_err() {
-                            *res.status_mut() = StatusCode::InternalServerError;
-                        } else {
-                            try_handle!(res,
+                    match &*path {
+                        "/" => {
+                            let mut tries = 0;
+                            let mut id = PasteID::new(ID_SIZE);
+                            let mut file = create_paste(&id);
+                            while file.is_err() && tries < 3 {
+                                id = PasteID::new(ID_SIZE);
+                                file = create_paste(&id);
+                                tries += 1;
+                            }
+                            if file.is_err() {
+                                *res.status_mut() = StatusCode::InternalServerError;
+                            } else {
+                                try_handle!(res,
                                         io::copy(&mut req,
                                                  &mut try_handle!(res, 
                                                                   file,
                                                                   StatusCode::InternalServerError)),
                                         StatusCode::InternalServerError);
-                            *res.status_mut() = StatusCode::Created;
-                            res.send(format!("https://pasta.lol/{}\n", id).as_bytes())
-                                .unwrap();
+                                *res.status_mut() = StatusCode::Created;
+                                res.send(format!("https://pasta.lol/{}\n", id).as_bytes())
+                                    .unwrap();
+                            }
+                        }
+                        _ => {
+                            *res.status_mut() = StatusCode::BadRequest;
                         }
                     }
                 }
@@ -140,6 +149,7 @@ fn handle(mut req: Request, mut res: Response) {
         hyper::Delete => {
             match req.uri.clone() {
                 AbsolutePath(path) => {
+                    // TODO: authentication
                     let id = try_handle!(res,
                                          PasteID::from_str(path.trim_left_matches("/")),
                                          StatusCode::BadRequest);
