@@ -18,8 +18,11 @@ use hyper::status::StatusCode;
 use hyper::uri::RequestUri::*;
 use hyper::Url;
 
+use xattr::FileExt;
+
 const ID_SIZE: usize = 8;
 const PASS_SIZE: usize = 12;
+const XATTR_PASSWORD: &'static str = "system.password";
 const USAGE: &'static [u8] = b"
 pastabin 0.0.1 - Minimal pastebin clone in Rust. Manual post required. CLI recommended.
 
@@ -144,17 +147,14 @@ fn handle(mut req: Request, mut res: Response) {
                             if file.is_err() {
                                 *res.status_mut() = StatusCode::InternalServerError;
                             } else {
+                                let mut fd =
+                                    try_handle!(res, file, StatusCode::InternalServerError);
                                 try_handle!(res,
-                                        io::copy(&mut req,
-                                                 &mut try_handle!(res, 
-                                                                  file,
-                                                                  StatusCode::InternalServerError)),
-                                        StatusCode::InternalServerError);
+                                            io::copy(&mut req, &mut fd),
+                                            StatusCode::InternalServerError);
                                 let password = passgen::generate(PASS_SIZE);
                                 try_handle!(res,
-                                            xattr::set(&id.filename(),
-                                                       "password",
-                                                       password.as_slice()),
+                                            fd.set_xattr(XATTR_PASSWORD, password.as_slice()),
                                             StatusCode::InternalServerError);
                                 *res.status_mut() = StatusCode::Created;
                                 res.send(format!("{{ url: \"https://pasta.lol/{}\", pass: \
@@ -189,7 +189,7 @@ fn handle(mut req: Request, mut res: Response) {
                     let filename = id.filename();
                     let path = Path::new(&filename);
                     if path.exists() {
-                        if let Some(data) = xattr::get(path, "password").ok() {
+                        if let Some(data) = xattr::get(path, XATTR_PASSWORD).ok() {
                             if password !=
                                try_handle!(res,
                                            std::str::from_utf8(data.as_slice()),
