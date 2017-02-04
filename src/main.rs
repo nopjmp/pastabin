@@ -23,8 +23,9 @@ use xattr::FileExt;
 const ID_SIZE: usize = 8;
 const PASS_SIZE: usize = 12;
 const XATTR_PASSWORD: &'static str = "system.password";
+const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 const USAGE: &'static [u8] = b"
-pastabin 0.0.2 - Minimal pastebin clone in Rust. Manual post required. CLI recommended.
+pastabin - Minimal pastebin clone in Rust. Manual post required. CLI recommended.
 
     Now with password support!
 
@@ -110,6 +111,9 @@ fn handle(mut req: Request, mut res: Response) {
                         "/favicon.ico" => {
                             // todo favicon
                             *res.status_mut() = StatusCode::NotFound;
+                        }
+                        "/version" => {
+                            res.send(VERSION.unwrap_or("unknown").as_bytes()).unwrap();
                         }
                         _ => {
                             if let Ok(id) = PasteID::from_str(path.trim_left_matches("/")) {
