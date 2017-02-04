@@ -218,6 +218,5 @@ fn handle(mut req: Request, mut res: Response) {
 
 fn main() {
     let mut server = Server::http("127.0.0.1:8080").unwrap();
-    server.keep_alive(None);
     let _guard = server.handle(handle);
 }
