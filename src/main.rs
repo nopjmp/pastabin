@@ -1,6 +1,5 @@
 extern crate rand;
 extern crate hyper;
-extern crate hyper_rustls;
 extern crate xattr;
 
 use std::fs::{File, OpenOptions, remove_file};
@@ -13,7 +12,7 @@ use pasteid::PasteID;
 mod strgen;
 
 use std::io;
-use hyper::header::{Location, ContentLength, ContentType};
+use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Server, Request, Response};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri::*;
@@ -217,45 +216,8 @@ fn handle(mut req: Request, mut res: Response) {
     }
 }
 
-fn handle_http(req: Request, mut res: Response) {
-    match req.uri.clone() {
-        AbsolutePath(path) => {
-            *res.status_mut() = StatusCode::PermanentRedirect;
-            res.headers_mut().set(Location(format!("https://pasta.lol{}", path)));
-        }
-        _ => *res.status_mut() = StatusCode::BadRequest,
-    }
-}
-
-const CERT_PATH: Option<&'static str> = option_env!("PASTA_CERT");
-const KEY_PATH: Option<&'static str> = option_env!("PASTA_KEY");
-
 fn main() {
-    match CERT_PATH {
-        Some(cert) => {
-            let certs = hyper_rustls::util::load_certs(cert);
-            let key = hyper_rustls::util::load_private_key(KEY_PATH.unwrap());
-            let tls = hyper_rustls::TlsServer::new(certs, key);
-            let server = Server::https("[::]:443", tls.clone()).unwrap();
-            let _guard = server.handle(handle);
-            println!("Server listening on [::]:443");
-
-            let server_http = Server::http("[::]:80").unwrap();
-            let _guard_http = server_http.handle(handle_http);
-            println!("Server listening on [::]:80");
-
-            let server4 = Server::https("0.0.0.0:443", tls).unwrap();
-            let _guard4 = server4.handle(handle);
-            println!("Server listening on 0.0.0.0:443");
-
-            let server_http4 = Server::http("0.0.0.0:80").unwrap();
-            let _guard_http4 = server_http4.handle(handle_http);
-            println!("Server listening on 0.0.0.0:80");
-        }
-        None => {
-            let server = Server::http("127.0.0.1:8080").unwrap();
-            let _guard = server.handle(handle);
-            println!("Server listening on 127.0.0.1:8080");
-        }
-    }
+    let server = Server::http("127.0.0.1:8080").unwrap();
+    let _guard = server.handle(handle);
+    println!("Server listening on 127.0.0.1:8080");
 }
