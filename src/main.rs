@@ -243,6 +243,14 @@ fn main() {
             let server_http = Server::http("[::]:80").unwrap();
             let _guard_http = server_http.handle(handle_http);
             println!("Server listening on [::]:80");
+
+            let server4 = Server::https("0.0.0.0:443", tls).unwrap();
+            let _guard4 = server4.handle(handle);
+            println!("Server listening on 0.0.0.0:443");
+
+            let server_http4 = Server::http("0.0.0.0:80").unwrap();
+            let _guard_http4 = server_http4.handle(handle_http);
+            println!("Server listening on 0.0.0.0:80");
         }
         None => {
             let server = Server::http("127.0.0.1:8080").unwrap();
